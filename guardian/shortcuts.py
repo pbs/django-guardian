@@ -18,7 +18,7 @@ from guardian.compat import basestring
 from guardian.core import ObjectPermissionChecker
 from guardian.ctypes import get_content_type
 from guardian.exceptions import MixedContentTypeError, WrongAppError
-from guardian.models import GroupObjectPermission
+from guardian.models import GroupObjectPermission, UserObjectPermission
 from guardian.utils import get_anonymous_user, get_group_obj_perms_model, get_identity, get_user_obj_perms_model
 
 
@@ -762,3 +762,32 @@ def get_objects_for_group(group, perms, klass=None, any_perm=False, accept_globa
     if group_model.objects.is_generic():
         values = list(values)
     return queryset.filter(pk__in=values)
+
+
+def get_models_for_user(user_obj, app_label):
+    user_permissions = (UserObjectPermission.objects.
+                        filter(user=user_obj).
+                        filter(content_type__app_label=app_label).
+                        all())
+    group_permissions = (GroupObjectPermission.objects.
+                        filter(group__in=user_obj.groups.all()).
+                        filter(content_type__app_label=app_label).
+                        all())
+    models = ([perm.content_type for perm in user_permissions] +
+              [perm.content_type for perm in group_permissions])
+    return models
+
+
+def get_user_permissions_for_model(user_obj, codename):
+    permissions = (UserObjectPermission.objects.
+                   filter(permission__codename=codename).
+                   filter(user=user_obj).all())
+    if permissions.count():
+        return True
+    else:
+        permissions = (GroupObjectPermission.objects.
+                   filter(permission__codename=codename).
+                   filter(group__in=user_obj.groups.all()))
+    if permissions.count():
+        return True
+    return False

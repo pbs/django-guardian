@@ -6,7 +6,7 @@ from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.admin.widgets import FilteredSelectMultiple
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, get_permission_codename
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
@@ -14,8 +14,9 @@ from django.utils.translation import ugettext
 from guardian.compat import url
 from guardian.forms import GroupObjectPermissionsForm, UserObjectPermissionsForm
 from guardian.models import Group
+from guardian.decorators import guardian_perm_decorator
 from guardian.shortcuts import (get_group_perms, get_groups_with_perms, get_perms_for_model, get_user_perms,
-                                get_users_with_perms)
+                                get_users_with_perms, get_user_permissions_for_model)
 
 
 class AdminUserObjectPermissionsForm(UserObjectPermissionsForm):
@@ -128,6 +129,7 @@ class GuardedModelAdminMixin(object):
         })
         return context
 
+    @guardian_perm_decorator
     def obj_perms_manage_view(self, request, object_pk):
         """
         Main object permissions view. Presents all users and groups with any
@@ -218,6 +220,7 @@ class GuardedModelAdminMixin(object):
             return 'admin/guardian/contrib/grappelli/obj_perms_manage.html'
         return self.obj_perms_manage_template
 
+    @guardian_perm_decorator
     def obj_perms_manage_user_view(self, request, object_pk, user_id):
         """
         Manages selected users' permissions for current object.
@@ -291,6 +294,7 @@ class GuardedModelAdminMixin(object):
         """
         return AdminUserObjectPermissionsForm
 
+    @guardian_perm_decorator
     def obj_perms_manage_group_view(self, request, object_pk, group_id):
         """
         Manages selected groups' permissions for current object.
@@ -428,6 +432,60 @@ class GuardedModelAdmin(GuardedModelAdminMixin, admin.ModelAdmin):
         admin.site.register(Author, AuthorAdmin)
 
     """
+
+    def has_add_permission(self, request):
+        """
+        Return True if the given request has permission to add an object.
+        Can be overridden by the user in subclasses.
+        """
+        opts = self.opts
+        codename = get_permission_codename('add', opts)
+        return get_user_permissions_for_model(request.user, codename)
+
+    def has_change_permission(self, request, obj=None):
+        """
+        Return True if the given request has permission to change the given
+        Django model instance, the default implementation doesn't examine the
+        `obj` parameter.
+
+        Can be overridden by the user in subclasses. In such case it should
+        return True if the given request has permission to change the `obj`
+        model instance. If `obj` is None, this should return True if the given
+        request has permission to change *any* object of the given type.
+        """
+        opts = self.opts
+        codename = get_permission_codename('change', opts)
+        return get_user_permissions_for_model(request.user, codename)
+
+    def has_delete_permission(self, request, obj=None):
+        """
+        Return True if the given request has permission to change the given
+        Django model instance, the default implementation doesn't examine the
+        `obj` parameter.
+
+        Can be overridden by the user in subclasses. In such case it should
+        return True if the given request has permission to delete the `obj`
+        model instance. If `obj` is None, this should return True if the given
+        request has permission to delete *any* object of the given type.
+        """
+        opts = self.opts
+        codename = get_permission_codename('delete', opts)
+        return get_user_permissions_for_model(request.user, codename)
+
+    def has_view_permission(self, request, obj=None):
+        """
+        Return True if the given request has permission to view the given
+        Django model instance. The default implementation doesn't examine the
+        `obj` parameter.
+
+        If overridden by the user in subclasses, it should return True if the
+        given request has permission to view the `obj` model instance. If `obj`
+        is None, it should return True if the request has permission to view
+        any object of the given type.
+        """
+        opts = self.opts
+        codename = get_permission_codename('view', opts)
+        return get_user_permissions_for_model(request.user, codename)
 
 
 class UserManage(forms.Form):

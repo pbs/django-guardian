@@ -5,7 +5,7 @@ from guardian.conf import settings
 from guardian.core import ObjectPermissionChecker
 from guardian.ctypes import get_content_type
 from guardian.exceptions import WrongAppError
-
+from guardian.shortcuts import get_models_for_user
 
 def check_object_support(obj):
     """
@@ -107,3 +107,6 @@ class ObjectPermissionBackend(object):
 
         check = ObjectPermissionChecker(user_obj)
         return check.get_perms(obj)
+
+    def has_module_perms(self, user_obj, app_label):
+        return user_obj.is_active and any(get_models_for_user(user_obj, app_label))

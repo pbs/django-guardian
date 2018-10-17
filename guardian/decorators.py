@@ -10,6 +10,9 @@ from django.utils.functional import wraps
 from guardian.compat import basestring
 from guardian.exceptions import GuardianError
 from guardian.utils import get_40x_or_None
+from guardian.models import UserObjectPermission
+from django.contrib.auth import get_permission_codename
+from django.core.exceptions import PermissionDenied
 
 
 def permission_required(perm, lookup_variables=None, **kwargs):
@@ -156,3 +159,14 @@ def permission_required_or_404(perm, *args, **kwargs):
     """
     kwargs['return_404'] = True
     return permission_required(perm, *args, **kwargs)
+
+
+def guardian_perm_decorator(func):
+    def _decorated(*args, **kwargs):
+        request = args[1]
+        opts = UserObjectPermission._meta
+        codename = get_permission_codename('change', opts)
+        if request.user.has_perm("%s.%s" % (opts.app_label, codename), ):
+            return func(*args, **kwargs)
+        raise PermissionDenied
+    return _decorated
