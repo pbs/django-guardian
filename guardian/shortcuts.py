@@ -788,6 +788,4 @@ def get_user_permissions_for_model(user_obj, codename):
         permissions = (GroupObjectPermission.objects.
                    filter(permission__codename=codename).
                    filter(group__in=user_obj.groups.all()))
-    if permissions.count():
-        return True
-    return False
+    return [perm.permission.codename for perm in permissions]

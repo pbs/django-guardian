@@ -454,10 +454,12 @@ class GuardedModelAdmin(GuardedModelAdminMixin, admin.ModelAdmin):
         return objects
 
     def check_permission(self, request, perm_code, obj=None):
-        if not obj:
-            return True
+        import ipdb; ipdb.set_trace()
         codename = get_permission_codename(perm_code, self.opts)
-        permissions = get_perms(request.user, obj)
+        if not obj:
+            permissions = get_user_permissions_for_model(request.user, codename)
+        else:
+            permissions = get_perms(request.user, obj)
         return codename in permissions
 
     def has_add_permission(self, request):
@@ -465,6 +467,8 @@ class GuardedModelAdmin(GuardedModelAdminMixin, admin.ModelAdmin):
         Return True if the given request has permission to add an object.
         Can be overridden by the user in subclasses.
         """
+        if request.user.is_superuser:
+            return super(GuardedModelAdmin, self).has_add_permission(request)
         opts = self.opts
         codename = get_permission_codename('add', opts)
         return get_user_permissions_for_model(request.user, codename)
@@ -513,7 +517,6 @@ class GuardedModelAdmin(GuardedModelAdminMixin, admin.ModelAdmin):
         if request.user.is_superuser:
             return super(GuardedModelAdmin, self).has_change_permission(request, obj)
         return self.check_permission(request, 'view', obj=obj)
-
 
 
 class UserManage(forms.Form):
