@@ -438,6 +438,10 @@ class GuardedModelAdmin(GuardedModelAdminMixin, admin.ModelAdmin):
         Return True if the given request has permission to add an object.
         Can be overridden by the user in subclasses.
         """
+        has_model_permission = (super(GuardedModelAdmin, self).
+                                has_add_permission(request))
+        if has_model_permission:
+            return True
         opts = self.opts
         codename = get_permission_codename('add', opts)
         return get_user_permissions_for_model(request.user, codename)
@@ -453,6 +457,10 @@ class GuardedModelAdmin(GuardedModelAdminMixin, admin.ModelAdmin):
         model instance. If `obj` is None, this should return True if the given
         request has permission to change *any* object of the given type.
         """
+        has_model_permission = (super(GuardedModelAdmin, self).
+                                has_add_permission(request))
+        if has_model_permission:
+            return True
         opts = self.opts
         codename = get_permission_codename('change', opts)
         return get_user_permissions_for_model(request.user, codename)
@@ -468,6 +476,10 @@ class GuardedModelAdmin(GuardedModelAdminMixin, admin.ModelAdmin):
         model instance. If `obj` is None, this should return True if the given
         request has permission to delete *any* object of the given type.
         """
+        has_model_permission = (super(GuardedModelAdmin, self).
+                                has_add_permission(request))
+        if has_model_permission:
+            return True
         opts = self.opts
         codename = get_permission_codename('delete', opts)
         return get_user_permissions_for_model(request.user, codename)
@@ -483,6 +495,10 @@ class GuardedModelAdmin(GuardedModelAdminMixin, admin.ModelAdmin):
         is None, it should return True if the request has permission to view
         any object of the given type.
         """
+        has_model_permission = (super(GuardedModelAdmin, self).
+                                has_add_permission(request))
+        if has_model_permission:
+            return True
         opts = self.opts
         codename = get_permission_codename('view', opts)
         return get_user_permissions_for_model(request.user, codename)
