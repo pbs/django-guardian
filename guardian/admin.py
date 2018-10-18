@@ -454,7 +454,6 @@ class GuardedModelAdmin(GuardedModelAdminMixin, admin.ModelAdmin):
         return objects
 
     def check_permission(self, request, perm_code, obj=None):
-        import ipdb; ipdb.set_trace()
         codename = get_permission_codename(perm_code, self.opts)
         if not obj:
             permissions = get_user_permissions_for_model(request.user, codename)
