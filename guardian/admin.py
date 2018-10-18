@@ -7,13 +7,14 @@ from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.auth import get_user_model, get_permission_codename
+from django.contrib.auth.models import ContentType
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ugettext
 from guardian.compat import url
 from guardian.forms import GroupObjectPermissionsForm, UserObjectPermissionsForm
-from guardian.models import Group
+from guardian.models import Group, GroupObjectPermission
 from guardian.decorators import guardian_perm_decorator
 from guardian.shortcuts import (get_group_perms, get_groups_with_perms, get_perms_for_model, get_user_perms,
                                 get_users_with_perms, get_user_permissions_for_model)
@@ -432,16 +433,23 @@ class GuardedModelAdmin(GuardedModelAdminMixin, admin.ModelAdmin):
         admin.site.register(Author, AuthorAdmin)
 
     """
+    def check_permission(self, request, perm_code, obj=None):
+        if not obj:
+            return True
+        user_groups = [group.id for group in request.user.groups.all()]
+        ctype = ContentType.objects.get_for_model(obj)
+        permissions = GroupObjectPermission.objects.filter(group_id__in=user_groups).\
+                                                    filter(content_type=ctype).\
+                                                    filter(permission__codename__contains=
+                                                    perm_code)
+        objects = self.model.objects.filter(id__in=[perm.object_pk for perm in permissions])
+        return obj in objects
 
     def has_add_permission(self, request):
         """
         Return True if the given request has permission to add an object.
         Can be overridden by the user in subclasses.
         """
-        has_model_permission = (super(GuardedModelAdmin, self).
-                                has_add_permission(request))
-        if has_model_permission:
-            return True
         opts = self.opts
         codename = get_permission_codename('add', opts)
         return get_user_permissions_for_model(request.user, codename)
@@ -457,13 +465,9 @@ class GuardedModelAdmin(GuardedModelAdminMixin, admin.ModelAdmin):
         model instance. If `obj` is None, this should return True if the given
         request has permission to change *any* object of the given type.
         """
-        has_model_permission = (super(GuardedModelAdmin, self).
-                                has_add_permission(request))
-        if has_model_permission:
-            return True
-        opts = self.opts
-        codename = get_permission_codename('change', opts)
-        return get_user_permissions_for_model(request.user, codename)
+        if request.user.is_superuser:
+            return super(GuardedModelAdmin, self).has_change_permission(request, obj)
+        return self.check_permission(request, 'change', obj=obj)
 
     def has_delete_permission(self, request, obj=None):
         """
@@ -476,13 +480,9 @@ class GuardedModelAdmin(GuardedModelAdminMixin, admin.ModelAdmin):
         model instance. If `obj` is None, this should return True if the given
         request has permission to delete *any* object of the given type.
         """
-        has_model_permission = (super(GuardedModelAdmin, self).
-                                has_add_permission(request))
-        if has_model_permission:
-            return True
-        opts = self.opts
-        codename = get_permission_codename('delete', opts)
-        return get_user_permissions_for_model(request.user, codename)
+        if request.user.is_superuser:
+            return super(GuardedModelAdmin, self).has_delete_permission(request, obj)
+        return self.check_permission(request, 'delete', obj=obj)
 
     def has_view_permission(self, request, obj=None):
         """
@@ -495,13 +495,10 @@ class GuardedModelAdmin(GuardedModelAdminMixin, admin.ModelAdmin):
         is None, it should return True if the request has permission to view
         any object of the given type.
         """
-        has_model_permission = (super(GuardedModelAdmin, self).
-                                has_add_permission(request))
-        if has_model_permission:
-            return True
-        opts = self.opts
-        codename = get_permission_codename('view', opts)
-        return get_user_permissions_for_model(request.user, codename)
+        if request.user.is_superuser:
+            return super(GuardedModelAdmin, self).has_change_permission(request, obj)
+        return self.check_permission(request, 'change', obj=obj)
+
 
 
 class UserManage(forms.Form):
