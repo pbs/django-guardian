@@ -16,8 +16,14 @@ from guardian.compat import url
 from guardian.forms import GroupObjectPermissionsForm, UserObjectPermissionsForm
 from guardian.models import Group, GroupObjectPermission
 from guardian.decorators import guardian_perm_decorator
-from guardian.shortcuts import (get_group_perms, get_groups_with_perms, get_perms_for_model, get_user_perms,
-                                get_users_with_perms, get_user_permissions_for_model)
+from guardian.shortcuts import (get_group_perms,
+                                get_groups_with_perms,
+                                get_perms_for_model,
+                                get_user_perms,
+                                get_users_with_perms,
+                                get_user_permissions_for_model,
+                                get_objects_for_user,
+                                get_perms)
 
 
 class AdminUserObjectPermissionsForm(UserObjectPermissionsForm):
@@ -433,17 +439,26 @@ class GuardedModelAdmin(GuardedModelAdminMixin, admin.ModelAdmin):
         admin.site.register(Author, AuthorAdmin)
 
     """
+
+    def get_queryset(self, request):
+        if request.user.is_superuser:
+            return super(GuardedModelAdmin, self).get_queryset(request)
+        permisssions = [perm.codename for perm in get_perms_for_model(self.model)]
+        objects = get_objects_for_user(request.user,
+                                       permisssions,
+                                       klass=self.model,
+                                       use_groups=True,
+                                       any_perm=True,
+                                       with_superuser=True,
+                                       accept_global_perms=False)
+        return objects
+
     def check_permission(self, request, perm_code, obj=None):
         if not obj:
             return True
-        user_groups = [group.id for group in request.user.groups.all()]
-        ctype = ContentType.objects.get_for_model(obj)
-        permissions = GroupObjectPermission.objects.filter(group_id__in=user_groups).\
-                                                    filter(content_type=ctype).\
-                                                    filter(permission__codename__contains=
-                                                    perm_code)
-        objects = self.model.objects.filter(id__in=[perm.object_pk for perm in permissions])
-        return obj in objects
+        codename = get_permission_codename(perm_code, self.opts)
+        permissions = get_perms(request.user, obj)
+        return codename in permissions
 
     def has_add_permission(self, request):
         """
@@ -497,7 +512,7 @@ class GuardedModelAdmin(GuardedModelAdminMixin, admin.ModelAdmin):
         """
         if request.user.is_superuser:
             return super(GuardedModelAdmin, self).has_change_permission(request, obj)
-        return self.check_permission(request, 'change', obj=obj)
+        return self.check_permission(request, 'view', obj=obj)
 
 
 
