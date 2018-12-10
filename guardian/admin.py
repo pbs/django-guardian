@@ -11,7 +11,7 @@ from django.contrib.auth import get_user_model, get_permission_codename
 from django.contrib.auth.models import ContentType
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
+from django.urls import reverse, resolve, Resolver404
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ugettext
 from guardian.compat import url
@@ -252,10 +252,16 @@ class GuardedModelAdminMixin(object):
                 self.model._meta.app_label,
                 self.model._meta.model_name,
             )
-            url = reverse(
-                '%s:%s_%s_permissions_manage_user' % info,
-                args=[obj.pk, user.pk]
-            )
+            try:
+                url = reverse(
+                    '%s:%s_%s_permissions_manage_user' % info,
+                    args=[obj.pk, user.pk]
+                )
+                resolve(url)
+            except Resolver404:
+                url = reverse(
+                    '%s:%s_%s_changelist' % info
+                )
             return redirect(url)
 
         context = self.get_obj_perms_base_context(request, obj)
@@ -313,14 +319,9 @@ class GuardedModelAdminMixin(object):
             return redirect(post_url)
 
         group = get_object_or_404(Group, id=group_id)
-        try:
-            obj = self.get_queryset(request).get(pk=object_pk)
-        except ObjectDoesNotExist:
-            obj = None
-
+        obj = get_object_or_404(self.get_queryset(request), pk=object_pk)
         form_class = self.get_obj_perms_manage_group_form(request)
         form = form_class(group, obj, request.POST or None)
-
         if request.method == 'POST' and form.is_valid():
             form.save_obj_perms()
             msg = ugettext("Permissions saved.")
@@ -330,15 +331,10 @@ class GuardedModelAdminMixin(object):
                 self.model._meta.app_label,
                 self.model._meta.model_name,
             )
-            if obj:
-                url = reverse(
-                    '%s:%s_%s_permissions_manage_group' % info,
-                    args=[obj.pk, group.id]
-                )
-            else:
-                url = reverse(
-                    '%s:%s_%s_changelist' % info
-                )
+            url = reverse(
+                '%s:%s_%s_permissions_manage_group' % info,
+                args=[obj.pk, group.id]
+            )
             return redirect(url)
 
         context = self.get_obj_perms_base_context(request, obj)
