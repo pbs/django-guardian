@@ -327,7 +327,7 @@ class GuardedModelAdminMixin(object):
             )
             try:
                 url = reverse(
-                    '%s:%s_%s_permissions_manage_user' % info,
+                    '%s:%s_%s_permissions_manage_group' % info,
                     args=[obj.pk, group.pk]
                 )
                 resolve(url)
