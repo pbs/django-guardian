@@ -8,6 +8,7 @@ from django.contrib import admin, messages
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.auth import get_user_model, get_permission_codename
 from django.contrib.auth.models import ContentType
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
@@ -311,7 +312,8 @@ class GuardedModelAdminMixin(object):
             return redirect(post_url)
 
         group = get_object_or_404(Group, id=group_id)
-        obj = get_object_or_404(self.get_queryset(request), pk=object_pk)
+        obj = self.get_queryset(request).get(pk=object_pk)
+
         form_class = self.get_obj_perms_manage_group_form(request)
         form = form_class(group, obj, request.POST or None)
 
@@ -324,10 +326,15 @@ class GuardedModelAdminMixin(object):
                 self.model._meta.app_label,
                 self.model._meta.model_name,
             )
-            url = reverse(
-                '%s:%s_%s_permissions_manage_group' % info,
-                args=[obj.pk, group.id]
-            )
+            if obj:
+                url = reverse(
+                    '%s:%s_%s_permissions_manage_group' % info,
+                    args=[obj.pk, group.id]
+                )
+            else:
+                url = reverse(
+                    '%s:%s_%s_changelist' % info
+                )
             return redirect(url)
 
         context = self.get_obj_perms_base_context(request, obj)
