@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from collections import OrderedDict
 
 from django import forms
+from django.core.exceptions import ObjectDoesNotExist
 from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.admin.widgets import FilteredSelectMultiple
@@ -312,7 +313,10 @@ class GuardedModelAdminMixin(object):
             return redirect(post_url)
 
         group = get_object_or_404(Group, id=group_id)
-        obj = self.get_queryset(request).get(pk=object_pk)
+        try:
+            obj = self.get_queryset(request).get(pk=object_pk)
+        except ObjectDoesNotExist:
+            obj = None
 
         form_class = self.get_obj_perms_manage_group_form(request)
         form = form_class(group, obj, request.POST or None)
