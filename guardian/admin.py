@@ -306,7 +306,6 @@ class GuardedModelAdminMixin(object):
         """
         Manages selected groups' permissions for current object.
         """
-        import ipdb; ipdb.set_trace()
         if not self.has_change_permission(request, None):
             post_url = reverse('admin:index', current_app=self.admin_site.name)
             return redirect(post_url)
