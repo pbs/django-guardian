@@ -168,5 +168,5 @@ def guardian_perm_decorator(func):
         codename = get_permission_codename('change', opts)
         if request.user.has_perm("%s.%s" % (opts.app_label, codename), ):
             return func(*args, **kwargs)
-        raise PermissionDenied
+       
     return _decorated
