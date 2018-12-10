@@ -252,16 +252,10 @@ class GuardedModelAdminMixin(object):
                 self.model._meta.app_label,
                 self.model._meta.model_name,
             )
-            try:
-                url = reverse(
-                    '%s:%s_%s_permissions_manage_user' % info,
-                    args=[obj.pk, user.pk]
-                )
-                resolve(url)
-            except Resolver404:
-                url = reverse(
-                    '%s:%s_%s_changelist' % info
-                )
+            url = reverse(
+                '%s:%s_%s_permissions_manage_user' % info,
+                args=[obj.pk, user.pk]
+            )
             return redirect(url)
 
         context = self.get_obj_perms_base_context(request, obj)
@@ -331,10 +325,16 @@ class GuardedModelAdminMixin(object):
                 self.model._meta.app_label,
                 self.model._meta.model_name,
             )
-            url = reverse(
-                '%s:%s_%s_permissions_manage_group' % info,
-                args=[obj.pk, group.id]
-            )
+            try:
+                url = reverse(
+                    '%s:%s_%s_permissions_manage_user' % info,
+                    args=[obj.pk, group.pk]
+                )
+                resolve(url)
+            except Resolver404:
+                url = reverse(
+                    '%s:%s_%s_changelist' % info
+                )
             return redirect(url)
 
         context = self.get_obj_perms_base_context(request, obj)
