@@ -324,10 +324,15 @@ class GuardedModelAdminMixin(object):
                 self.model._meta.app_label,
                 self.model._meta.model_name,
             )
-            url = reverse(
-                '%s:%s_%s_permissions_manage_group' % info,
-                args=[obj.pk, group.id]
-            )
+            if not self.model._meta.proxy:
+                url = reverse(
+                    '%s:%s_%s_permissions_manage_group' % info,
+                    args=[obj.pk, group.id]
+                )
+            else:
+                url = reverse(
+                    '%s:%s_%s_changelist' % info
+                )
             return redirect(url)
 
         context = self.get_obj_perms_base_context(request, obj)
